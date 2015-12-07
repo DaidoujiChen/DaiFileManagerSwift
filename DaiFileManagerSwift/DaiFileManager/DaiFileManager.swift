@@ -9,7 +9,7 @@
 import Foundation
 
 // MARK: DaiFileManagerItems
-class DaiFileManagerItems {
+struct DaiFileManagerItems {
     
     // 檔案或是資料夾列表
     private var items: [String] = []
@@ -100,7 +100,8 @@ extension DaiFileManagerPath {
     
     // 列出資料夾或是檔案們
     private func folderList(isFolder: Bool) -> DaiFileManagerItems {
-        let items = DaiFileManagerItems()
+        var items = DaiFileManagerItems()
+        
         guard let safeItems = try? DaiFileManager.defaultManager.contentsOfDirectoryAtPath(self.path) else {
             print("Path Fail")
             return items
@@ -147,7 +148,7 @@ extension DaiFileManagerPath {
 }
 
 // MARK: DaiFileManagerPath
-class DaiFileManagerPath {
+struct DaiFileManagerPath {
     
     // 儲存路徑
     private var paths: [String] = []
@@ -164,22 +165,23 @@ class DaiFileManagerPath {
     // 如果結尾不以 / 結束的話如, document["hello"] 則單只 document 資料夾下的 hello 檔案
     // 預設會自動補齊中間缺少的資料夾
     subscript(path: String) -> DaiFileManagerPath {
-        self.isFolder = path.characters.last == "/"
+        var newDaiFileManagerPath = self
+        newDaiFileManagerPath.isFolder = path.characters.last == "/"
         let splitPath = path.componentsSeparatedByString("/").filter { (eachPath) -> Bool in
             return (eachPath.characters.count > 0)
         }
         for eachPath in splitPath {
-            self.paths.append(eachPath)
+            newDaiFileManagerPath.paths.append(eachPath)
             if eachPath != splitPath.last {
-                self.createFolder(self.path)
+                newDaiFileManagerPath.createFolder(newDaiFileManagerPath.path)
             }
             else {
-                if self.isFolder {
-                    self.createFolder(self.path)
+                if newDaiFileManagerPath.isFolder {
+                    newDaiFileManagerPath.createFolder(newDaiFileManagerPath.path)
                 }
             }
         }
-        return self
+        return newDaiFileManagerPath
     }
     
 }
@@ -192,7 +194,7 @@ extension DaiFileManager {
     // documentPath
     static var document: DaiFileManagerPath {
         get {
-            let newFileManager = DaiFileManagerPath()
+            var newFileManager = DaiFileManagerPath()
             guard let safeDocumentPath = NSSearchPathForDirectoriesInDomains(.DocumentDirectory, .UserDomainMask, true).first else {
                 print("Get Document Path Fail")
                 return newFileManager
@@ -205,16 +207,29 @@ extension DaiFileManager {
     // resourcePath
     static var resource: DaiFileManagerPath {
         get {
-            let newFileManager = DaiFileManagerPath()
+            var newFileManager = DaiFileManagerPath()
             newFileManager.paths.append(NSBundle.mainBundle().bundlePath)
             return newFileManager
         }
     }
     
+    static func custom(paths: [String]) -> DaiFileManagerPath {
+        var newFileManager = DaiFileManagerPath()
+        for path in paths {
+            if path == paths.first {
+                newFileManager.paths.append("/" + path)
+            }
+            else {
+                newFileManager.paths.append(path)
+            }
+        }
+        return newFileManager
+    }
+    
 }
 
 // MARK: DaiFileManager
-class DaiFileManager {
+struct DaiFileManager {
     
     // 公用的 NSFileManager
     private static let defaultManager = NSFileManager.defaultManager()
@@ -224,7 +239,7 @@ class DaiFileManager {
     }
     
     // 判斷檔案是否存在
-    class func isExistIn(path: String) -> Bool {
+    static func isExistIn(path: String) -> Bool {
         return self.defaultManager.fileExistsAtPath(path)
     }
     
